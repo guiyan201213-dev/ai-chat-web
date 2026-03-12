@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI 智能助手</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
 <body>
     <div class="app-layout">
@@ -39,11 +40,13 @@
                 </div>
             </header>
 
-            <div class="chat-container" id="chat-box">
+            <div class="chat-wrapper">
                 <div class="hero-greeting" id="hero-greeting">
                     <h1>有什么我可以帮您的？</h1>
                     <p>随时向我提问，或让我帮您写点什么。</p>
                 </div>
+                
+                <div class="chat-container" id="chat-box"></div>
             </div>
 
             <footer class="input-area">
@@ -60,6 +63,8 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
