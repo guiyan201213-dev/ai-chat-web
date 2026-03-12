@@ -1,3 +1,12 @@
+// 初始化 Markdown 解析器和代码高亮
+marked.setOptions({
+    highlight: function(code, lang) {
+        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+        return hljs.highlight(code, { language }).value;
+    },
+    langPrefix: 'hljs language-'
+});
+
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -9,23 +18,29 @@ const sidebar = document.getElementById('sidebar');
 const heroGreeting = document.getElementById('hero-greeting');
 const historyList = document.getElementById('history-list');
 
-// 💥 核心逻辑：本地保存历史记录
-let chats = JSON.parse(localStorage.getItem('ai_chats')) || [];
+// 💥 增加错误捕获：防止缓存出错导致全站崩溃
+let chats = [];
+try {
+    chats = JSON.parse(localStorage.getItem('ai_chats')) || [];
+} catch (e) {
+    console.error("解析缓存失败，重置为空。");
+    chats = [];
+}
 let currentChatId = null;
 
-// 初始化页面：渲染左侧历史列表
+// 页面加载完毕即渲染历史
 renderHistory();
 
-// 侧边栏开关逻辑
+// 侧边栏开关
 if(menuBtn) menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
 if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
-// 点击“开启新对话”
+// 💥 核心修复：开启新对话的逻辑优化
 newChatBtn.addEventListener('click', () => {
     currentChatId = null;
-    chatBox.innerHTML = ''; // 清空聊天区
-    chatBox.appendChild(heroGreeting); // 把大字塞回来
-    heroGreeting.style.display = 'block'; // 显示居中大字
+    chatBox.innerHTML = ''; // 清空聊天记录
+    heroGreeting.classList.remove('hidden'); // 显示居中大字
+    
     document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
     if(window.innerWidth <= 768) sidebar.classList.remove('active');
 });
@@ -48,23 +63,21 @@ async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // 隐藏居中大字
-    heroGreeting.style.display = 'none';
+    // 发送消息时隐藏大字
+    heroGreeting.classList.add('hidden');
 
-    // 处理新对话的保存逻辑
     if (!currentChatId) {
-        currentChatId = Date.now().toString(); // 用时间戳做唯一ID
+        currentChatId = Date.now().toString();
         chats.unshift({ 
             id: currentChatId, 
-            title: text.substring(0, 15) + (text.length > 15 ? '...' : ''), // 用第一句话做标题
+            title: text.substring(0, 15) + (text.length > 15 ? '...' : ''), 
             messages: [] 
         });
     }
 
-    // 把用户消息显示并保存
     appendMessage(text, 'user');
     saveMessageToLocal(currentChatId, 'user', text);
-    renderHistory(); // 更新左侧列表
+    renderHistory();
     
     userInput.value = '';
     userInput.style.height = 'auto';
@@ -82,8 +95,8 @@ async function sendMessage() {
         
         const data = await response.json();
         
-        // 替换动效，显示 AI 消息并保存
-        loadingMessageDiv.querySelector('.bubble').innerHTML = escapeHTML(data.reply).replace(/\n/g, '<br>');
+        // 💥 核心：将原本的直接显示替换为 Markdown 渲染
+        loadingMessageDiv.querySelector('.bubble').innerHTML = marked.parse(data.reply);
         saveMessageToLocal(currentChatId, 'ai', data.reply);
 
     } catch (error) {
@@ -93,18 +106,73 @@ async function sendMessage() {
     }
 }
 
-// 在屏幕上添加气泡
+// 💥 核心：根据不同身份渲染文本或 Markdown
 function appendMessage(text, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
-    messageDiv.innerHTML = `<div class="bubble">${escapeHTML(text).replace(/\n/g, '<br>')}</div>`;
+    
+    if (sender === 'user') {
+        // 用户的话直接显示，防止被解析成奇怪的格式
+        messageDiv.innerHTML = `<div class="bubble">${escapeHTML(text).replace(/\n/g, '<br>')}</div>`;
+    } else {
+        // AI 的话进行高级 Markdown 渲染
+        messageDiv.innerHTML = `<div class="bubble">${marked.parse(text)}</div>`;
+    }
+    
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
     return messageDiv;
 }
 
-// 呼吸灯气泡
 function appendLoadingBubble() {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'ai-message');
+    messageDiv.innerHTML = `
+        <div class="bubble">
+            <div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>`;
+    chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return messageDiv;
+}
+
+function saveMessageToLocal(id, role, content) {
+    const chat = chats.find(c => c.id === id);
+    if (chat) {
+        chat.messages.push({ role, content });
+        localStorage.setItem('ai_chats', JSON.stringify(chats));
+    }
+}
+
+function renderHistory() {
+    historyList.innerHTML = '<div class="history-title">历史对话记录</div>';
+    
+    chats.forEach(chat => {
+        const item = document.createElement('div');
+        item.classList.add('history-item');
+        if (chat.id === currentChatId) item.classList.add('active');
+        item.textContent = chat.title;
+        
+        item.addEventListener('click', () => {
+            currentChatId = chat.id;
+            chatBox.innerHTML = '';
+            heroGreeting.classList.add('hidden'); // 隐藏大字
+            
+            chat.messages.forEach(msg => {
+                appendMessage(msg.content, msg.role);
+            });
+            
+            renderHistory();
+            if(window.innerWidth <= 768) sidebar.classList.remove('active');
+        });
+        
+        historyList.appendChild(item);
+    });
+}
+
+function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+}function appendLoadingBubble() {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', 'ai-message');
     messageDiv.innerHTML = `
