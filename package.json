@@ -1,0 +1,14 @@
+{
+  "name": "ai-chat-web",
+  "version": "1.0.0",
+  "description": "我的专属 AI 聊天网站（支持多模型，Vercel一键部署）",
+  "scripts": {
+    "start": "node api/chat.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "openai": "^4.28.0"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
