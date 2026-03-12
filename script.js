@@ -1,54 +1,73 @@
-// 获取页面上的核心元素
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const modelSelect = document.getElementById('model-select');
+const newChatBtn = document.getElementById('new-chat-btn');
+const menuBtn = document.getElementById('menu-btn');
+const sidebar = document.getElementById('sidebar');
 
-// 让输入框按回车键也能发送（按 Shift+Enter 是换行）
+// 手机端侧边栏切换
+if(menuBtn) {
+    menuBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
+}
+
+// 💥 新增：点击“新对话”按钮清空屏幕
+newChatBtn.addEventListener('click', () => {
+    chatBox.innerHTML = `
+        <div class="message ai-message">
+            <div class="bubble">
+                你好！我是你的专属 AI 助手。请问今天想聊点什么？
+            </div>
+        </div>
+    `;
+    if(window.innerWidth <= 768) { sidebar.classList.remove('active'); }
+});
+
+// 输入框回车发送
 userInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // 阻止默认的换行行为
+        e.preventDefault();
         sendMessage();
     }
 });
 
-// 点击发送按钮触发发送
 sendBtn.addEventListener('click', sendMessage);
 
-// 核心发送逻辑
+// 输入框高度自适应
+userInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+
 async function sendMessage() {
     const text = userInput.value.trim();
-    if (!text) return; // 如果输入为空，什么都不做
+    if (!text) return;
 
-    // 1. 把用户的话显示在界面上
     appendMessage(text, 'user');
-    userInput.value = ''; // 清空输入框
-    userInput.style.height = 'auto'; // 恢复输入框高度
+    userInput.value = '';
+    userInput.style.height = 'auto';
 
-    // 2. 显示 AI 正在思考的动画（这里先用简单的文字代替）
-    const loadingMessageDiv = appendMessage('正在思考中...', 'ai', true);
+    // 💥 改变：这里调用的是带呼吸灯动效的气泡
+    const loadingMessageDiv = appendLoadingBubble();
 
-    // 3. 向后端发送请求 (注意：我们等下就要去写这个 /api/chat 接口)
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: text,
-                model: modelSelect.value // 把当前选择的模型也发给后端
+                model: modelSelect.value
             })
         });
 
-        if (!response.ok) {
-            throw new Error('网络请求失败');
-        }
-
+        if (!response.ok) throw new Error('网络请求失败');
+        
         const data = await response.json();
         
-        // 4. 把后端的真实回复替换掉“正在思考中...”
-        loadingMessageDiv.querySelector('.bubble').textContent = data.reply;
+        // 替换呼吸灯为真实文字
+        loadingMessageDiv.querySelector('.bubble').innerHTML = escapeHTML(data.reply).replace(/\n/g, '<br>');
 
     } catch (error) {
         console.error('Error:', error);
@@ -57,50 +76,40 @@ async function sendMessage() {
     }
 }
 
-// 在聊天框里添加气泡的函数
-function appendMessage(text, sender, isLoading = false) {
-    // 创建一个新的 div
+function appendMessage(text, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
     
-    // 判断是用户的还是 AI 的，加上对应的样式
     if (sender === 'user') {
         messageDiv.classList.add('user-message');
-        messageDiv.innerHTML = `
-            <div class="bubble">${escapeHTML(text)}</div>
-        `;
-    } else {
-        messageDiv.classList.add('ai-message');
-        messageDiv.innerHTML = `
-            <div class="avatar">${isLoading ? '⏳' : '🤖'}</div>
-            <div class="bubble">${escapeHTML(text)}</div>
-        `;
-    }
+        messageDiv.innerHTML = `<div class="bubble">${escapeHTML(text).replace(/\n/g, '<br>')}</div>`;
+    } 
 
-    // 把新气泡塞进聊天框
     chatBox.appendChild(messageDiv);
-    
-    // 让聊天框自动滚动到最底部，露出最新消息
     chatBox.scrollTop = chatBox.scrollHeight;
-
-    return messageDiv; // 返回这个元素，方便后面修改它（比如替换 loading 状态）
+    return messageDiv;
 }
 
-// 安全处理：防止用户输入恶意代码 (XSS攻击)
+// 💥 新增：专属的呼吸灯气泡生成函数
+function appendLoadingBubble() {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'ai-message');
+    messageDiv.innerHTML = `
+        <div class="bubble">
+            <div class="typing-indicator">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    `;
+    chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return messageDiv;
+}
+
 function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-    );
+    return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[tag] || tag));
 }
-
-// 输入框高度自适应（文字多了自动变高）
-userInput.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = (this.scrollHeight) + 'px';
-});
