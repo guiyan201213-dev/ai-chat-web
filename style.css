@@ -1,93 +1,106 @@
 :root {
-    --bg-main: #FCF5F1;
-    --bg-sidebar: #F4EAE4;
-    --text-main: #3A1C1D;
-    --text-muted: #8A7272;
-    --accent-orange: #DF6B49;
-    --white: #FFFFFF;
-    --radius-pill: 50px;
-    --radius-box: 24px;
+    --bg-main: #FCF5F1; --bg-sidebar: #F4EAE4; --text-main: #3A1C1D; --text-muted: #8A7272;
+    --accent-orange: #DF6B49; --white: #FFFFFF;
 }
 
-/* 💥 彻底干掉点击的蓝块和蓝框 */
-* { 
-    box-sizing: border-box; margin: 0; padding: 0; 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-    -webkit-tap-highlight-color: transparent !important; 
-    outline: none !important; 
-}
-
-/* 💥 强制锁定屏幕高度，不准页面整体滚动 */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent !important; outline: none !important; }
 body, html { height: 100%; height: 100dvh; overflow: hidden; background-color: var(--bg-main); color: var(--text-main); }
-
 .app-layout { display: flex; height: 100%; width: 100%; }
 
 /* --- 侧边栏 --- */
-.sidebar { width: 260px; background-color: var(--bg-sidebar); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.03); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.sidebar { width: 260px; background-color: var(--bg-sidebar); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.03); transition: transform 0.3s ease; }
 .sidebar-header { display: flex; align-items: center; gap: 10px; }
-.new-chat-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--white); color: var(--text-main); border: 1px solid rgba(0,0,0,0.05); padding: 12px; border-radius: var(--radius-pill); font-size: 0.95rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.2s; }
+.new-chat-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--white); color: var(--text-main); border: 1px solid rgba(0,0,0,0.05); padding: 12px; border-radius: 50px; font-size: 0.95rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: all 0.2s; }
 .new-chat-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .close-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; }
 
 /* 历史记录 */
 .history-list { margin-top: 30px; overflow-y: auto; flex: 1; }
 .history-title { font-size: 0.8rem; color: var(--text-muted); padding-left: 10px; margin-bottom: 10px; font-weight: 600; }
-.history-item { padding: 12px 15px; margin-bottom: 5px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item { padding: 12px 15px; margin-bottom: 5px; border-radius: 12px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .history-item:hover { background-color: rgba(0,0,0,0.04); }
 .history-item.active { background-color: var(--white); font-weight: 500; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
 
-/* --- 💥 主内容区：完美三明治结构 --- */
-.main-content { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; }
-
-/* 上层面包：固定高度 */
+/* --- 主内容区 --- */
+.main-content { flex: 1; display: flex; flex-direction: column; height: 100%; min-width: 0; position: relative; }
 .header { flex-shrink: 0; height: 70px; display: flex; align-items: center; padding: 0 30px; gap: 15px; }
 .mobile-only { display: none; background: none; border: none; color: var(--text-main); cursor: pointer; }
-.model-selector { display: flex; align-items: center; background: var(--white); padding: 6px 16px; border-radius: var(--radius-pill); box-shadow: 0 4px 15px rgba(0,0,0,0.03); gap: 8px; }
+.model-selector { display: flex; align-items: center; background: var(--white); padding: 6px 16px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); gap: 8px; }
 .model-selector select { border: none; background: transparent; color: var(--text-main); font-size: 0.95rem; font-weight: 500; cursor: pointer; appearance: none; padding-right: 15px; }
 
-/* 中间夹层：动态伸缩，绝对隔离 */
+/* 核心容器 */
 .chat-wrapper { flex: 1; position: relative; overflow: hidden; }
 
-.chat-container { height: 100%; overflow-y: auto; padding: 20px 30px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; z-index: 2; position: relative; }
+.bottom-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: linear-gradient(0deg, var(--bg-main) 40%, transparent); z-index: 5; pointer-events: none; }
 
-/* 大字绝对居中，不占物理位置 */
+.chat-container { height: 100%; overflow-y: auto; padding: 20px 30px 120px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; position: relative; z-index: 2; }
+
+/* =======================================================
+   💥 动画核心状态控制 (根据 body 的 .chat-active 类名切换) 
+   ======================================================= */
+
+/* 1. 聊天记录区 */
+body:not(.chat-active) .chat-container { opacity: 0; pointer-events: none; }
+body.chat-active .chat-container { opacity: 1; transition: opacity 0.5s ease 0.2s; }
+
+/* 2. 居中大字 */
 .hero-greeting { 
-    position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); 
-    text-align: center; width: 90%; max-width: 500px; 
-    pointer-events: none; z-index: 1; transition: opacity 0.3s ease;
+    position: absolute; top: 50%; left: 50%; width: 90%; max-width: 500px; text-align: center; z-index: 1; pointer-events: none; 
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
 }
-.hero-greeting h1 { font-size: 2.2rem; color: var(--text-main); margin-bottom: 15px; font-weight: 600; }
+.hero-greeting h1 { font-size: 2.2rem; margin-bottom: 15px; font-weight: 600; }
 .hero-greeting p { font-size: 1.1rem; color: var(--text-muted); }
-.hero-greeting.hidden { opacity: 0; display: none; }
 
-/* 气泡样式 */
+body:not(.chat-active) .hero-greeting { transform: translate(-50%, -150px); opacity: 1; }
+body.chat-active .hero-greeting { transform: translate(-50%, -200px); opacity: 0; }
+
+/* 3. 悬浮输入框区 (丝滑位移) */
+.input-area { 
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 0 30px 30px; 
+    display: flex; justify-content: center; z-index: 10;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+body:not(.chat-active) .input-area { transform: translateY(-38vh); } /* 初始：向上升起，来到画面中央 */
+body.chat-active .input-area { transform: translateY(0); } /* 激活：降落到底部 */
+
+/* 4. 输入框胶囊 (丝滑形变) */
+.input-pill { 
+    width: 100%; max-width: 750px; background: var(--white); display: flex; align-items: center; border: 1px solid rgba(0,0,0,0.02);
+    transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+body:not(.chat-active) .input-pill { 
+    border-radius: 16px; /* 初始方形 */
+    padding: 15px 15px 15px 24px; 
+    box-shadow: 0 15px 50px rgba(0,0,0,0.08); /* 中央悬浮阴影加重 */
+}
+body.chat-active .input-pill { 
+    border-radius: 50px; /* 降落后变两边圆的胶囊形 */
+    padding: 10px 10px 10px 24px; 
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06); 
+}
+
+/* 输入框内部元素 */
+.input-pill textarea { flex: 1; border: none; background: transparent; font-size: 1.1rem; color: var(--text-main); resize: none; max-height: 120px; padding: 8px 0; line-height: 1.5; transition: padding 0.6s; }
+.send-btn { background-color: var(--accent-orange); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; margin-left: 10px; flex-shrink: 0; }
+.send-btn:hover { transform: scale(1.05); background-color: #c95d3d; }
+
+/* 气泡与 Markdown 样式 */
 .message { display: flex; max-width: 85%; animation: fadeIn 0.3s ease; flex-shrink: 0; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .bubble { padding: 14px 22px; font-size: 1.05rem; line-height: 1.6; word-wrap: break-word; overflow-x: auto; }
 .ai-message { align-self: flex-start; }
 .ai-message .bubble { background-color: transparent; color: var(--text-main); }
 .user-message { align-self: flex-end; }
-.user-message .bubble { background-color: var(--white); color: var(--text-main); border-radius: var(--radius-box) var(--radius-box) 4px var(--radius-box); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.user-message .bubble { background-color: var(--white); color: var(--text-main); border-radius: 24px 24px 4px 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
 
-/* 💥 Markdown 原生排版美化 (不依赖外部容易崩溃的库) */
-.bubble p { margin-bottom: 10px; }
-.bubble p:last-child { margin-bottom: 0; }
+.bubble p { margin-bottom: 10px; } .bubble p:last-child { margin-bottom: 0; }
 .bubble pre { background-color: #282c34; color: #abb2bf; padding: 15px; border-radius: 12px; overflow-x: auto; margin: 12px 0; }
 .bubble code { font-family: Consolas, Monaco, monospace; font-size: 0.9em; background-color: rgba(0,0,0,0.06); padding: 3px 6px; border-radius: 6px; }
 .bubble pre code { background-color: transparent; padding: 0; }
 
-/* 下层面包：固定在底部 */
-.input-area { flex-shrink: 0; padding: 15px 30px 30px; display: flex; justify-content: center; background: var(--bg-main); }
-.input-pill { width: 100%; max-width: 750px; background: var(--white); border-radius: var(--radius-pill); padding: 10px 10px 10px 24px; display: flex; align-items: center; box-shadow: 0 8px 30px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.02); }
-.input-pill textarea { flex: 1; border: none; background: transparent; font-size: 1.1rem; color: var(--text-main); resize: none; max-height: 120px; padding: 8px 0; line-height: 1.5; }
-.send-btn { background-color: var(--accent-orange); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; margin-left: 10px; flex-shrink: 0; }
-
-/* 呼吸灯 */
 .typing-indicator { display: flex; gap: 6px; padding: 10px 5px; }
 .dot { width: 8px; height: 8px; background-color: var(--text-main); border-radius: 50%; opacity: 0.4; animation: breathe 1.4s infinite ease-in-out both; }
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
+.dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
 @keyframes breathe { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-/* 响应式 */
-@media (max-width: 768px) { .sidebar { position: fixed; z-index: 100; height: 100%; transform: translateX(-100%); } .sidebar.active { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); } .mobile-only { display: block; } .message { max-width: 90%; } .input-area { padding: 10px 15px 15px; } .hero-greeting h1 { font-size: 1.8rem; } }
+@media (max-width: 768px) { .sidebar { position: fixed; z-index: 100; height: 100%; transform: translateX(-100%); } .sidebar.active { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.1); } .mobile-only { display: block; } .message { max-width: 90%; } .input-area { padding: 0 15px 15px; } .hero-greeting h1 { font-size: 1.8rem; } }
