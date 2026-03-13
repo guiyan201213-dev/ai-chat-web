@@ -1,4 +1,3 @@
-// 核心节点获取
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -7,42 +6,36 @@ const newChatBtn = document.getElementById('new-chat-btn');
 const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 const menuBtn = document.getElementById('menu-btn');
 const sidebar = document.getElementById('sidebar');
-const heroGreeting = document.getElementById('hero-greeting');
 const historyList = document.getElementById('history-list');
 
-// 💥 强力防崩溃读取缓存
 let chats = [];
 let currentChatId = null;
 try {
     const localData = localStorage.getItem('ai_chats');
     if (localData) {
         chats = JSON.parse(localData);
-        if (!Array.isArray(chats)) chats = []; // 发现数据不是数组，强行矫正
+        if (!Array.isArray(chats)) chats = [];
     }
 } catch (e) {
     console.warn('缓存数据损坏，已重置为空。');
     chats = [];
 }
 
-// 初始化渲染
 renderHistory();
 
-// 侧边栏交互
 if(menuBtn) menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
 if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
-// 点击“开启新对话”
+// 💥 关键一：点击新对话时，撕下标签，页面回到初始空旷状态
 newChatBtn.addEventListener('click', () => {
     currentChatId = null;
     chatBox.innerHTML = ''; 
-    heroGreeting.style.display = 'block'; // 让大字回来
-    setTimeout(() => heroGreeting.classList.remove('hidden'), 50); // 柔和显示
+    document.body.classList.remove('chat-active'); // 触发动画：方框飞回中央，大字降落
     
     document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
     if(window.innerWidth <= 768) sidebar.classList.remove('active');
 });
 
-// 输入框逻辑
 userInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -57,14 +50,12 @@ userInput.addEventListener('input', function() {
     this.style.height = (this.scrollHeight) + 'px';
 });
 
-// 核心发送逻辑
 async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // 发消息时隐藏大字
-    heroGreeting.classList.add('hidden');
-    setTimeout(() => { if(heroGreeting.classList.contains('hidden')) heroGreeting.style.display = 'none'; }, 300);
+    // 💥 关键二：发出消息时，贴上标签，触发降落形变动画
+    document.body.classList.add('chat-active'); 
 
     if (!currentChatId) {
         currentChatId = Date.now().toString();
@@ -94,7 +85,6 @@ async function sendMessage() {
         if (!response.ok) throw new Error('网络请求失败');
         const data = await response.json();
         
-        // 💥 安全的 Markdown 渲染
         loadingMessageDiv.querySelector('.bubble').innerHTML = safeMarkdown(data.reply);
         saveMessageToLocal(currentChatId, 'ai', data.reply);
 
@@ -105,14 +95,10 @@ async function sendMessage() {
     }
 }
 
-// 安全渲染函数
 function safeMarkdown(text) {
     try {
-        // 使用现代版 marked.parse 解析
         return marked.parse(text);
     } catch (e) {
-        // 万一解析库出问题，退回到普通文本换行，绝不让屏幕崩溃
-        console.error('Markdown解析失败', e);
         return escapeHTML(text).replace(/\n/g, '<br>');
     }
 }
@@ -161,7 +147,9 @@ function renderHistory() {
         item.addEventListener('click', () => {
             currentChatId = chat.id;
             chatBox.innerHTML = '';
-            heroGreeting.style.display = 'none'; // 切换记录时隐藏大字
+            
+            // 💥 关键三：点击历史记录时，也触发降落动画
+            document.body.classList.add('chat-active'); 
             
             chat.messages.forEach(msg => {
                 appendMessage(msg.content, msg.role);
