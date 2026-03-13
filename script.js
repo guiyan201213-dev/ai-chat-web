@@ -1,12 +1,4 @@
-// 初始化 Markdown 解析器和代码高亮
-marked.setOptions({
-    highlight: function(code, lang) {
-        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-        return hljs.highlight(code, { language }).value;
-    },
-    langPrefix: 'hljs language-'
-});
-
+// 核心节点获取
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -18,33 +10,39 @@ const sidebar = document.getElementById('sidebar');
 const heroGreeting = document.getElementById('hero-greeting');
 const historyList = document.getElementById('history-list');
 
-// 💥 增加错误捕获：防止缓存出错导致全站崩溃
+// 💥 强力防崩溃读取缓存
 let chats = [];
+let currentChatId = null;
 try {
-    chats = JSON.parse(localStorage.getItem('ai_chats')) || [];
+    const localData = localStorage.getItem('ai_chats');
+    if (localData) {
+        chats = JSON.parse(localData);
+        if (!Array.isArray(chats)) chats = []; // 发现数据不是数组，强行矫正
+    }
 } catch (e) {
-    console.error("解析缓存失败，重置为空。");
+    console.warn('缓存数据损坏，已重置为空。');
     chats = [];
 }
-let currentChatId = null;
 
-// 页面加载完毕即渲染历史
+// 初始化渲染
 renderHistory();
 
-// 侧边栏开关
+// 侧边栏交互
 if(menuBtn) menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
 if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
-// 💥 核心修复：开启新对话的逻辑优化
+// 点击“开启新对话”
 newChatBtn.addEventListener('click', () => {
     currentChatId = null;
-    chatBox.innerHTML = ''; // 清空聊天记录
-    heroGreeting.classList.remove('hidden'); // 显示居中大字
+    chatBox.innerHTML = ''; 
+    heroGreeting.style.display = 'block'; // 让大字回来
+    setTimeout(() => heroGreeting.classList.remove('hidden'), 50); // 柔和显示
     
     document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
     if(window.innerWidth <= 768) sidebar.classList.remove('active');
 });
 
+// 输入框逻辑
 userInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -59,12 +57,14 @@ userInput.addEventListener('input', function() {
     this.style.height = (this.scrollHeight) + 'px';
 });
 
+// 核心发送逻辑
 async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
 
-    // 发送消息时隐藏大字
+    // 发消息时隐藏大字
     heroGreeting.classList.add('hidden');
+    setTimeout(() => { if(heroGreeting.classList.contains('hidden')) heroGreeting.style.display = 'none'; }, 300);
 
     if (!currentChatId) {
         currentChatId = Date.now().toString();
@@ -92,31 +92,39 @@ async function sendMessage() {
         });
 
         if (!response.ok) throw new Error('网络请求失败');
-        
         const data = await response.json();
         
-        // 💥 核心：将原本的直接显示替换为 Markdown 渲染
-        loadingMessageDiv.querySelector('.bubble').innerHTML = marked.parse(data.reply);
+        // 💥 安全的 Markdown 渲染
+        loadingMessageDiv.querySelector('.bubble').innerHTML = safeMarkdown(data.reply);
         saveMessageToLocal(currentChatId, 'ai', data.reply);
 
     } catch (error) {
         console.error('Error:', error);
-        loadingMessageDiv.querySelector('.bubble').textContent = "抱歉，服务器开小差了，请稍后再试。";
+        loadingMessageDiv.querySelector('.bubble').textContent = "抱歉，网络开小差了，请稍后再试。";
         loadingMessageDiv.querySelector('.bubble').style.color = "red";
     }
 }
 
-// 💥 核心：根据不同身份渲染文本或 Markdown
+// 安全渲染函数
+function safeMarkdown(text) {
+    try {
+        // 使用现代版 marked.parse 解析
+        return marked.parse(text);
+    } catch (e) {
+        // 万一解析库出问题，退回到普通文本换行，绝不让屏幕崩溃
+        console.error('Markdown解析失败', e);
+        return escapeHTML(text).replace(/\n/g, '<br>');
+    }
+}
+
 function appendMessage(text, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
     
     if (sender === 'user') {
-        // 用户的话直接显示，防止被解析成奇怪的格式
         messageDiv.innerHTML = `<div class="bubble">${escapeHTML(text).replace(/\n/g, '<br>')}</div>`;
     } else {
-        // AI 的话进行高级 Markdown 渲染
-        messageDiv.innerHTML = `<div class="bubble">${marked.parse(text)}</div>`;
+        messageDiv.innerHTML = `<div class="bubble">${safeMarkdown(text)}</div>`;
     }
     
     chatBox.appendChild(messageDiv);
@@ -127,10 +135,7 @@ function appendMessage(text, sender) {
 function appendLoadingBubble() {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', 'ai-message');
-    messageDiv.innerHTML = `
-        <div class="bubble">
-            <div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        </div>`;
+    messageDiv.innerHTML = `<div class="bubble"><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
     return messageDiv;
@@ -156,7 +161,7 @@ function renderHistory() {
         item.addEventListener('click', () => {
             currentChatId = chat.id;
             chatBox.innerHTML = '';
-            heroGreeting.classList.add('hidden'); // 隐藏大字
+            heroGreeting.style.display = 'none'; // 切换记录时隐藏大字
             
             chat.messages.forEach(msg => {
                 appendMessage(msg.content, msg.role);
@@ -172,52 +177,4 @@ function renderHistory() {
 
 function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-}function appendLoadingBubble() {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', 'ai-message');
-    messageDiv.innerHTML = `
-        <div class="bubble">
-            <div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        </div>`;
-    chatBox.appendChild(messageDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    return messageDiv;
-}
-
-// 💥 核心功能：把消息存到浏览器的缓存里
-function saveMessageToLocal(id, role, content) {
-    const chat = chats.find(c => c.id === id);
-    if (chat) {
-        chat.messages.push({ role, content });
-        localStorage.setItem('ai_chats', JSON.stringify(chats));
-    }
-}
-
-// 💥 核心功能：渲染左侧的历史记录列表
-function renderHistory() {
-    // 保留标题，清空下面的列表
-    historyList.innerHTML = '<div class="history-title">历史对话记录</div>';
-    
-    chats.forEach(chat => {
-        const item = document.createElement('div');
-        item.classList.add('history-item');
-        if (chat.id === currentChatId) item.classList.add('active');
-        item.textContent = chat.title;
-        
-        // 点击历史记录，加载以前的对话
-        item.addEventListener('click', () => {
-            currentChatId = chat.id;
-            chatBox.innerHTML = '';
-            heroGreeting.style.display = 'none'; // 隐藏大字
-            
-            // 重新在屏幕上打出历史气泡
-            chat.messages.forEach(msg => {
-                appendMessage(msg.content, msg.rol    chatBox.scrollTop = chatBox.scrollHeight;
-    return messageDiv;
-}
-
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    }[tag] || tag));
 }
