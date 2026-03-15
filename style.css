@@ -5,7 +5,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent !important; outline: none !important; }
 body, html { height: 100%; height: 100dvh; overflow: hidden; color: var(--text-main); background-color: #f9f5f2; }
 
-/* 背景色彩光斑 */
+/* 背景光斑 */
 .bg-orbs { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: -1; pointer-events: none; }
 .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.5; animation: float 25s infinite ease-in-out alternate; }
 .orb-1 { width: 50vw; height: 50vw; background: #ffcfd2; top: -10%; left: -10%; }
@@ -13,28 +13,26 @@ body, html { height: 100%; height: 100dvh; overflow: hidden; color: var(--text-m
 .orb-3 { width: 40vw; height: 40vw; background: #cce3fd; top: 30%; left: 40%; animation-delay: -10s; }
 @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(60px, 60px) scale(1.1); } }
 
-/* 💥 Chat Go 顶部品牌名称 */
 .top-brand-name { position: absolute; top: 25px; left: 50%; transform: translateX(-50%); font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; color: rgba(0,0,0,0.5); z-index: 50; pointer-events: none; }
 
-/* 💥 终极液态玻璃特效 (Liquid Glassmorphism) */
+/* 💥 加固版：液态玻璃特效 (防透字) */
 .glass-panel {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
-    backdrop-filter: blur(35px) saturate(180%); -webkit-backdrop-filter: blur(35px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    border-right-color: rgba(255, 255, 255, 0.4); border-bottom-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.5) 100%);
+    backdrop-filter: blur(45px) saturate(200%); -webkit-backdrop-filter: blur(45px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255, 255, 255, 1);
 }
 .glass-btn {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.4));
-    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
+    backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-.glass-btn:hover { transform: scale(1.03); background: rgba(255, 255, 255, 0.9); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06); }
+.glass-btn:hover { transform: scale(1.03); background: rgba(255, 255, 255, 0.95); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); }
 
 .app-layout { display: flex; height: 100%; width: 100%; }
 
 /* --- 侧边栏 --- */
-.sidebar { width: 260px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.3s ease; border-radius: 0 30px 30px 0; border-left: none; }
+.sidebar { width: 260px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.3s ease; border-radius: 0 30px 30px 0; border-left: none; z-index: 100; }
 .sidebar-header { display: flex; align-items: center; gap: 10px; }
 .new-chat-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 50px; font-size: 0.95rem; font-weight: 500; color: var(--text-main); }
 .close-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 5px; }
@@ -44,8 +42,8 @@ body, html { height: 100%; height: 100dvh; overflow: hidden; color: var(--text-m
 .history-title { font-size: 0.8rem; color: var(--text-muted); padding-left: 10px; margin-bottom: 10px; font-weight: 600; }
 .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 5px; border-radius: 16px; cursor: pointer; transition: all 0.2s; }
 .history-item .title { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.history-item:hover { background-color: rgba(255,255,255,0.5); }
-.history-item.active { background-color: rgba(255,255,255,0.9); font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+.history-item:hover { background-color: rgba(255,255,255,0.6); }
+.history-item.active { background-color: rgba(255,255,255,1); font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 .delete-btn { background: none; border: none; color: #ff4d4f; cursor: pointer; opacity: 0; padding: 5px; transition: opacity 0.2s; border-radius: 50%; }
 .delete-btn:hover { background: rgba(255,77,79,0.1); }
 .history-item:hover .delete-btn { opacity: 1; } 
@@ -64,41 +62,72 @@ body:not(.chat-active) .chat-container { opacity: 0; pointer-events: none; }
 body.chat-active .chat-container { opacity: 1; transition: opacity 0.5s ease 0.2s; }
 
 .hero-greeting { position: absolute; top: 48%; left: 50%; width: 90%; max-width: 500px; text-align: center; z-index: 1; pointer-events: none; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
-.hero-greeting h1 { font-size: 2.2rem; margin-bottom: 15px; font-weight: 700; text-shadow: 0 2px 15px rgba(255,255,255,0.6); }
+.hero-greeting h1 { font-size: 2.2rem; margin-bottom: 15px; font-weight: 700; text-shadow: 0 2px 15px rgba(255,255,255,0.8); }
 .hero-greeting p { font-size: 1.1rem; color: var(--text-muted); }
 body:not(.chat-active) .hero-greeting { transform: translate(-50%, -160px); opacity: 1; }
 body.chat-active .hero-greeting { transform: translate(-50%, -200px); opacity: 0; }
 
-/* --- 悬浮输入区 (包含定制菜单) --- */
+/* --- 悬浮输入区 --- */
 .input-area { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 30px 30px; display: flex; justify-content: center; z-index: 10; transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
 body:not(.chat-active) .input-area { transform: translateY(-38vh); }
 body.chat-active .input-area { transform: translateY(0); }
 
 .input-pill { width: 100%; max-width: 750px; display: flex; align-items: flex-end; transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); position: relative; }
-body:not(.chat-active) .input-pill { border-radius: 28px; padding: 15px 15px 15px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
-body.chat-active .input-pill { border-radius: 50px; padding: 10px 10px 10px 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.04); }
+/* 💥 改进：初始状态变胖变高 */
+body:not(.chat-active) .input-pill { border-radius: 28px; padding: 25px 20px 25px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+body.chat-active .input-pill { border-radius: 50px; padding: 12px 12px 12px 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
 
-/* 输入框本体 */
-.input-pill textarea { flex: 1; border: none; background: transparent; font-size: 1.1rem; color: var(--text-main); resize: none; max-height: 120px; padding: 10px 0; line-height: 1.5; align-self: center; }
+/* 💥 改进：文本框自适应长度限制 */
+.input-pill textarea { 
+    flex: 1; border: none; background: transparent; font-size: 1.1rem; color: var(--text-main); 
+    resize: none; 
+    min-height: 26px; /* 初始基本高度 */
+    max-height: 180px; /* 💥 变长限制，超出会出现滚动条 */
+    padding: 0; line-height: 1.5; align-self: center; overflow-y: auto;
+}
+body:not(.chat-active) .input-pill textarea { font-size: 1.2rem; min-height: 30px; } /* 居中时字稍微大一点 */
 
-/* 💥 手工定制模型下拉菜单 */
+/* 手工定制模型下拉菜单 (增加不透明度和阴影防止透字) */
 .custom-model-selector { position: relative; margin-right: 10px; align-self: center; }
 .model-toggle { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
 .model-name-text { max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.model-menu { position: absolute; bottom: calc(100% + 15px); right: 0; width: 280px; border-radius: 24px; padding: 8px; opacity: 0; transform: translateY(10px) scale(0.95); pointer-events: none; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right; z-index: 100; box-shadow: 0 15px 40px rgba(0,0,0,0.12); }
+/* 💥 特别加固菜单背板 */
+.model-menu { 
+    position: absolute; bottom: calc(100% + 15px); right: 0; width: 280px; border-radius: 24px; padding: 8px; 
+    background: rgba(255, 255, 255, 0.9) !important; /* 更实心 */
+    backdrop-filter: blur(50px) !important;
+    opacity: 0; transform: translateY(10px) scale(0.95); pointer-events: none; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom right; z-index: 100; box-shadow: 0 15px 50px rgba(0,0,0,0.15); 
+}
 .model-menu.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-
 .model-option { padding: 12px 16px; border-radius: 16px; cursor: pointer; transition: background 0.2s; margin-bottom: 4px; }
 .model-option:last-child { margin-bottom: 0; }
-.model-option:hover { background: rgba(255,255,255,0.6); }
-.model-option.active { background: rgba(255,255,255,0.9); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+.model-option:hover { background: rgba(0,0,0,0.05); }
+.model-option.active { background: rgba(255,255,255,1); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 .opt-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main); }
 .opt-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
 
-/* 发送按钮 */
-.send-btn { background: linear-gradient(135deg, #DF6B49, #c95d3d); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; color: white; box-shadow: 0 4px 15px rgba(223, 107, 73, 0.4); align-self: center; }
+/* 💥 升级：发送/停止按钮特效 */
+.send-btn { 
+    background: linear-gradient(135deg, #DF6B49, #c95d3d); border: none; width: 44px; height: 44px; border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; 
+    color: white; box-shadow: 0 4px 15px rgba(223, 107, 73, 0.4); align-self: center; position: relative;
+}
 .send-btn:hover { transform: scale(1.05); }
+.send-btn .send-icon, .send-btn .stop-icon { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+
+/* 💥 生成中状态：光环转圈 */
+.spinner-ring {
+    position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px;
+    border: 2px solid transparent; border-top-color: #DF6B49; border-right-color: #DF6B49;
+    border-radius: 50%; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.send-btn.generating { background: rgba(0,0,0,0.8); box-shadow: none; }
+.send-btn.generating:hover { background: rgba(0,0,0,0.9); transform: scale(1); }
+.send-btn.generating .spinner-ring { opacity: 1; animation: spin 1s linear infinite; }
+.send-btn.generating .send-icon { display: none !important; }
+.send-btn.generating .stop-icon { display: flex !important; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 /* 气泡与一键复制按钮 */
 .message { display: flex; max-width: 85%; animation: fadeIn 0.3s ease; flex-shrink: 0; flex-direction: column; }
@@ -106,7 +135,7 @@ body.chat-active .input-pill { border-radius: 50px; padding: 10px 10px 10px 24px
 .bubble { padding: 14px 22px; font-size: 1.05rem; line-height: 1.6; word-wrap: break-word; overflow-x: auto; position: relative; }
 
 .ai-message { align-self: flex-start; }
-.ai-message .bubble { color: var(--text-main); border-radius: 4px 24px 24px 24px; } /* AI 气泡也是玻璃 */
+.ai-message .bubble { color: var(--text-main); border-radius: 4px 24px 24px 24px; } 
 .user-message { align-self: flex-end; }
 .user-message .bubble { background: linear-gradient(135deg, #DF6B49, #c95d3d); color: white; border-radius: 24px 4px 24px 24px; box-shadow: 0 4px 20px rgba(223,107,73,0.3); border: none; }
 
@@ -119,8 +148,7 @@ body.chat-active .input-pill { border-radius: 50px; padding: 10px 10px 10px 24px
 .bubble pre code { background-color: transparent; padding: 0; }
 .user-message .bubble code { background-color: rgba(255,255,255,0.2); }
 
-/* 💥 极简高级纯黑呼吸点 */
 .single-breathing-dot { width: 12px; height: 12px; background-color: var(--text-main); border-radius: 50%; margin: 8px; animation: singleBreathe 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
 @keyframes singleBreathe { 0%, 100% { transform: scale(0.6); opacity: 0.2; } 50% { transform: scale(1.1); opacity: 0.8; } }
 
-@media (max-width: 768px) { .sidebar { position: fixed; z-index: 100; height: 100%; transform: translateX(-100%); background: rgba(255,255,255,0.85); border-radius: 0; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); } .sidebar.active { transform: translateX(0); box-shadow: 4px 0 30px rgba(0,0,0,0.1); } .mobile-only { display: block; } .message { max-width: 95%; } .input-area { padding: 0 15px 15px; } .hero-greeting h1 { font-size: 1.8rem; } .model-name-text { max-width: 60px; } }
+@media (max-width: 768px) { .sidebar { position: fixed; z-index: 100; height: 100%; transform: translateX(-100%); background: rgba(255,255,255,0.85); border-radius: 0; backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); } .sidebar.active { transform: translateX(0); box-shadow: 4px 0 30px rgba(0,0,0,0.1); } .mobile-only { display: block; } .message { max-width: 95%; } .input-area { padding: 0 15px 15px; } .hero-greeting h1 { font-size: 1.8rem; } .model-name-text { max-width: 60px; } }
