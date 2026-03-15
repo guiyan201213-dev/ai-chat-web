@@ -50,6 +50,7 @@
                 
                 <div class="input-area">
                     <div class="input-pill glass-panel liquid-effect">
+                        
                         <textarea id="user-input" placeholder="输入你想聊的内容..." rows="1"></textarea>
                         
                         <div class="custom-model-selector" id="custom-model-selector">
@@ -76,10 +77,13 @@
                         </div>
 
                         <button id="send-btn" class="send-btn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="19" x2="12" y2="5"></line>
-                                <polyline points="5 12 12 5 19 12"></polyline>
-                            </svg>
+                            <span class="send-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                            </span>
+                            <span class="stop-icon" style="display: none;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
+                            </span>
+                            <div class="spinner-ring"></div>
                         </button>
                     </div>
                 </div>
