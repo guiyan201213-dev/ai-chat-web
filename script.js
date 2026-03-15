@@ -20,45 +20,49 @@ const userInfo = document.getElementById('user-info');
 const userAvatar = document.getElementById('user-avatar');
 const userName = document.getElementById('user-name');
 
-// 2. 💥 增加防崩溃装甲：智能初始化 Supabase
+// 2. 💥 钛合金防崩溃装甲：智能初始化 Supabase
 let supabase = null;
 let currentSession = null;
 
 try {
-    // 只有当网址真正是以 https 开头时，才去激活数据库
-    if (supabaseUrl.startsWith('https://')) {
+    // 确保填了真实网址，并且 HTML 里引了 supabase 库
+    if (supabaseUrl.startsWith('https://') && window.supabase) {
         supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // 监听登录状态
         supabase.auth.onAuthStateChange((event, session) => {
             currentSession = session; 
-            if (session) {
+            if (session && userInfo && loginBtn) {
                 loginBtn.style.display = 'none';
                 userInfo.style.display = 'flex';
-                userName.textContent = session.user.user_metadata.full_name || session.user.user_metadata.user_name || '用户';
-                userAvatar.src = session.user.user_metadata.avatar_url || 'https://via.placeholder.com/150';
-            } else {
+                if (userName) userName.textContent = session.user.user_metadata.full_name || session.user.user_metadata.user_name || '用户';
+                if (userAvatar) userAvatar.src = session.user.user_metadata.avatar_url || 'https://via.placeholder.com/150';
+            } else if (userInfo && loginBtn) {
                 loginBtn.style.display = 'flex';
                 userInfo.style.display = 'none';
             }
         });
     } else {
-        console.warn('⚠️ Supabase 密钥未正确填写，登录功能暂时挂起，但不影响界面点击。');
+        console.warn('⚠️ Supabase 尚未激活，可能未填写密钥或未引入库。');
     }
 } catch (e) {
     console.error('Supabase 初始化报错:', e);
 }
 
-// 3. 登录与退出逻辑 (增加安全拦截)
-loginBtn.addEventListener('click', async () => {
-    if (!supabase) return alert('提示：请先在 script.js 顶部填入真实的 Supabase 网址和密钥哦！');
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
-    if (error) alert('登录失败: ' + error.message);
-});
+// 3. 登录与退出逻辑 (带安全拦截)
+if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+        if (!supabase) return alert('提示：请先在 script.js 顶部填入真实的 Supabase 网址和密钥！');
+        const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+        if (error) alert('登录失败: ' + error.message);
+    });
+}
 
-logoutBtn.addEventListener('click', async () => { 
-    if (supabase) await supabase.auth.signOut(); 
-});
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => { 
+        if (supabase) await supabase.auth.signOut(); 
+    });
+}
 
 // 4. 模型菜单逻辑
 let currentAbortController = null;
@@ -68,19 +72,26 @@ const currentModelName = document.getElementById('current-model-name');
 const modelOptions = document.querySelectorAll('.model-option');
 let currentModelValue = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B';
 
-modelToggle.addEventListener('click', (e) => { e.stopPropagation(); modelMenu.classList.toggle('show'); });
-document.addEventListener('click', () => { modelMenu.classList.remove('show'); });
-
-modelOptions.forEach(option => {
-    option.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modelOptions.forEach(opt => opt.classList.remove('active'));
-        option.classList.add('active');
-        currentModelValue = option.dataset.value;
-        currentModelName.textContent = option.querySelector('.opt-title').textContent.split(' ')[0];
-        modelMenu.classList.remove('show');
+if (modelToggle && modelMenu) {
+    modelToggle.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        modelMenu.classList.toggle('show'); 
     });
-});
+    document.addEventListener('click', () => { modelMenu.classList.remove('show'); });
+}
+
+if (modelOptions.length > 0) {
+    modelOptions.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modelOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+            currentModelValue = option.dataset.value;
+            if (currentModelName) currentModelName.textContent = option.querySelector('.opt-title').textContent.split(' ')[0];
+            if (modelMenu) modelMenu.classList.remove('show');
+        });
+    });
+}
 
 // 5. 历史记录与初始化逻辑
 let chats = [];
@@ -90,25 +101,38 @@ try {
     if (localData) { chats = JSON.parse(localData); if (!Array.isArray(chats)) chats = []; }
 } catch (e) { chats = []; }
 
-renderHistory();
+if (historyList) renderHistory();
 
-if(menuBtn) menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
-if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
+if (menuBtn && sidebar) menuBtn.addEventListener('click', () => sidebar.classList.add('active'));
+if (closeSidebarBtn && sidebar) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
-newChatBtn.addEventListener('click', () => {
-    if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
-    currentChatId = null; chatBox.innerHTML = ''; 
-    document.body.classList.remove('chat-active'); 
-    document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
-    if(window.innerWidth <= 768) sidebar.classList.remove('active');
-});
+if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+        if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
+        currentChatId = null; 
+        if (chatBox) chatBox.innerHTML = ''; 
+        document.body.classList.remove('chat-active'); 
+        document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
+        if(window.innerWidth <= 768 && sidebar) sidebar.classList.remove('active');
+    });
+}
 
-userInput.addEventListener('keypress', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-sendBtn.addEventListener('click', sendMessage);
-userInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
+if (userInput) {
+    userInput.addEventListener('keypress', function (e) { 
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } 
+    });
+    userInput.addEventListener('input', function() { 
+        this.style.height = 'auto'; 
+        this.style.height = (this.scrollHeight) + 'px'; 
+    });
+}
+
+if (sendBtn) sendBtn.addEventListener('click', sendMessage);
 
 // 6. 核心对话逻辑
 async function sendMessage() {
+    if (!userInput || !sendBtn || !chatBox) return; // 安全防御
+
     if (sendBtn.classList.contains('generating')) {
         if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
         return;
@@ -128,8 +152,10 @@ async function sendMessage() {
 
     appendMessage(text, 'user');
     saveMessageToLocal(currentChatId, 'user', text);
-    renderHistory();
-    userInput.value = ''; userInput.style.height = 'auto';
+    if (historyList) renderHistory();
+    
+    userInput.value = ''; 
+    userInput.style.height = 'auto';
 
     const aiMessageDiv = document.createElement('div');
     aiMessageDiv.classList.add('message', 'ai-message');
@@ -202,10 +228,18 @@ async function sendMessage() {
     }
 }
 
-function finishGenerationUI() { sendBtn.classList.remove('generating'); currentAbortController = null; }
-function safeMarkdown(text) { try { return marked.parse(text); } catch (e) { return escapeHTML(text).replace(/\n/g, '<br>'); } }
+function finishGenerationUI() { 
+    if (sendBtn) sendBtn.classList.remove('generating'); 
+    currentAbortController = null; 
+}
+
+function safeMarkdown(text) { 
+    try { return window.marked ? marked.parse(text) : escapeHTML(text).replace(/\n/g, '<br>'); } 
+    catch (e) { return escapeHTML(text).replace(/\n/g, '<br>'); } 
+}
 
 function appendMessage(text, sender) {
+    if (!chatBox) return;
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
     const bubbleDiv = document.createElement('div');
@@ -229,6 +263,7 @@ function saveMessageToLocal(id, role, content) {
 }
 
 function renderHistory() {
+    if (!historyList) return;
     historyList.innerHTML = '<div class="history-title">历史记录</div>';
     chats.forEach(chat => {
         const item = document.createElement('div'); item.classList.add('history-item', 'glass-btn'); 
@@ -236,13 +271,13 @@ function renderHistory() {
         item.innerHTML = `<span class="title">${escapeHTML(chat.title)}</span><button class="delete-btn" title="删除"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg></button>`;
         item.addEventListener('click', () => {
             if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
-            currentChatId = chat.id; chatBox.innerHTML = ''; document.body.classList.add('chat-active'); 
+            currentChatId = chat.id; if(chatBox) chatBox.innerHTML = ''; document.body.classList.add('chat-active'); 
             chat.messages.forEach(msg => { appendMessage(msg.content, msg.role); });
-            renderHistory(); if(window.innerWidth <= 768) sidebar.classList.remove('active');
+            renderHistory(); if(window.innerWidth <= 768 && sidebar) sidebar.classList.remove('active');
         });
         item.querySelector('.delete-btn').addEventListener('click', (e) => {
             e.stopPropagation(); chats = chats.filter(c => c.id !== chat.id); localStorage.setItem('ai_chats', JSON.stringify(chats));
-            if (currentChatId === chat.id) newChatBtn.click(); renderHistory();
+            if (currentChatId === chat.id && newChatBtn) newChatBtn.click(); renderHistory();
         });
         historyList.appendChild(item);
     });
