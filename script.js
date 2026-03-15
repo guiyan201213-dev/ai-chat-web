@@ -1,11 +1,10 @@
 // ==========================================
-// 💥 必填项：初始化 Supabase (请替换为你自己的密钥)
+// 💥 必填项：初始化 Supabase
 // ==========================================
 const supabaseUrl = 'https://usotduffikxsrapjsanr.supabase.co'; // 形如 https://xxxx.supabase.co
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzb3RkdWZmaWt4c3JhcGpzYW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzEwNjgsImV4cCI6MjA4OTE0NzA2OH0.R_S5ddSNwtTubDj6lk300UxoN6ISJzJp09KHSFI9J2w'; // 形如 eyJhbG...
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-let currentSession = null;
 
+// 1. 获取所有界面元素
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -15,34 +14,53 @@ const menuBtn = document.getElementById('menu-btn');
 const sidebar = document.getElementById('sidebar');
 const historyList = document.getElementById('history-list');
 
-// 登录 UI 元素
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userInfo = document.getElementById('user-info');
 const userAvatar = document.getElementById('user-avatar');
 const userName = document.getElementById('user-name');
 
-// 💥 监听登录状态
-supabase.auth.onAuthStateChange((event, session) => {
-    currentSession = session; // 把凭证存起来，等下发给后端
-    if (session) {
-        loginBtn.style.display = 'none';
-        userInfo.style.display = 'flex';
-        userName.textContent = session.user.user_metadata.full_name || session.user.user_metadata.user_name || '用户';
-        userAvatar.src = session.user.user_metadata.avatar_url || 'https://via.placeholder.com/150';
-    } else {
-        loginBtn.style.display = 'flex';
-        userInfo.style.display = 'none';
-    }
-});
+// 2. 💥 增加防崩溃装甲：智能初始化 Supabase
+let supabase = null;
+let currentSession = null;
 
-// 触发登录与退出
+try {
+    // 只有当网址真正是以 https 开头时，才去激活数据库
+    if (supabaseUrl.startsWith('https://')) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // 监听登录状态
+        supabase.auth.onAuthStateChange((event, session) => {
+            currentSession = session; 
+            if (session) {
+                loginBtn.style.display = 'none';
+                userInfo.style.display = 'flex';
+                userName.textContent = session.user.user_metadata.full_name || session.user.user_metadata.user_name || '用户';
+                userAvatar.src = session.user.user_metadata.avatar_url || 'https://via.placeholder.com/150';
+            } else {
+                loginBtn.style.display = 'flex';
+                userInfo.style.display = 'none';
+            }
+        });
+    } else {
+        console.warn('⚠️ Supabase 密钥未正确填写，登录功能暂时挂起，但不影响界面点击。');
+    }
+} catch (e) {
+    console.error('Supabase 初始化报错:', e);
+}
+
+// 3. 登录与退出逻辑 (增加安全拦截)
 loginBtn.addEventListener('click', async () => {
+    if (!supabase) return alert('提示：请先在 script.js 顶部填入真实的 Supabase 网址和密钥哦！');
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
     if (error) alert('登录失败: ' + error.message);
 });
-logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); });
 
+logoutBtn.addEventListener('click', async () => { 
+    if (supabase) await supabase.auth.signOut(); 
+});
+
+// 4. 模型菜单逻辑
 let currentAbortController = null;
 const modelToggle = document.getElementById('model-toggle');
 const modelMenu = document.getElementById('model-menu');
@@ -64,6 +82,7 @@ modelOptions.forEach(option => {
     });
 });
 
+// 5. 历史记录与初始化逻辑
 let chats = [];
 let currentChatId = null;
 try {
@@ -88,6 +107,7 @@ userInput.addEventListener('keypress', function (e) { if (e.key === 'Enter' && !
 sendBtn.addEventListener('click', sendMessage);
 userInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
+// 6. 核心对话逻辑
 async function sendMessage() {
     if (sendBtn.classList.contains('generating')) {
         if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
@@ -120,7 +140,6 @@ async function sendMessage() {
     chatBox.appendChild(aiMessageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // 💥 核心修改：向后端发请求时，把通行证带上
     const headers = { 'Content-Type': 'application/json' };
     if (currentSession) { headers['Authorization'] = `Bearer ${currentSession.access_token}`; }
 
