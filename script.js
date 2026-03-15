@@ -1,12 +1,42 @@
 const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
-const modelSelect = document.getElementById('model-select');
 const newChatBtn = document.getElementById('new-chat-btn');
 const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 const menuBtn = document.getElementById('menu-btn');
 const sidebar = document.getElementById('sidebar');
 const historyList = document.getElementById('history-list');
+
+// 💥 自定义模型菜单逻辑
+const modelToggle = document.getElementById('model-toggle');
+const modelMenu = document.getElementById('model-menu');
+const currentModelName = document.getElementById('current-model-name');
+const modelOptions = document.querySelectorAll('.model-option');
+let currentModelValue = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B';
+
+// 点击按钮打开/关闭面板
+modelToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    modelMenu.classList.toggle('show');
+});
+
+// 点击空白处收起面板
+document.addEventListener('click', () => {
+    modelMenu.classList.remove('show');
+});
+
+// 选择模型
+modelOptions.forEach(option => {
+    option.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modelOptions.forEach(opt => opt.classList.remove('active'));
+        option.classList.add('active');
+        currentModelValue = option.dataset.value;
+        // 把标题的文字提取出来填到按钮上
+        currentModelName.textContent = option.querySelector('.opt-title').textContent.split(' ')[0];
+        modelMenu.classList.remove('show');
+    });
+});
 
 let chats = [];
 let currentChatId = null;
@@ -36,7 +66,6 @@ userInput.addEventListener('input', function() {
     this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px';
 });
 
-// 💥 核心网络请求：流式读取 (Streaming)
 async function sendMessage() {
     const text = userInput.value.trim();
     if (!text) return;
@@ -55,12 +84,12 @@ async function sendMessage() {
     userInput.value = '';
     userInput.style.height = 'auto';
 
-    // 预先建立一个空的 AI 气泡
+    // 💥 初始化气泡，只放入一颗纯黑呼吸点
     const aiMessageDiv = document.createElement('div');
     aiMessageDiv.classList.add('message', 'ai-message');
     const bubbleDiv = document.createElement('div');
     bubbleDiv.classList.add('bubble', 'glass-panel'); 
-    bubbleDiv.innerHTML = '<span class="cursor">|</span>'; // 闪烁的光标
+    bubbleDiv.innerHTML = '<div class="single-breathing-dot"></div>'; 
     aiMessageDiv.appendChild(bubbleDiv);
     chatBox.appendChild(aiMessageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -69,16 +98,15 @@ async function sendMessage() {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, model: modelSelect.value })
+            body: JSON.stringify({ message: text, model: currentModelValue }) // 传自定义模型值
         });
 
         if (!response.ok) throw new Error('网络请求失败');
         
-        // 💥 开始像水管一样接水
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let fullReply = "";
-        let buffer = ""; // 防断行截断的缓冲区
+        let buffer = ""; 
 
         while (true) {
             const { done, value } = await reader.read();
@@ -86,7 +114,7 @@ async function sendMessage() {
             
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
-            buffer = lines.pop(); // 保留不完整的一行
+            buffer = lines.pop(); 
             
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
@@ -97,16 +125,16 @@ async function sendMessage() {
                         if (parsed.error) throw new Error(parsed.error);
                         if (parsed.text) {
                             fullReply += parsed.text;
-                            // 实时渲染并向下滚动
-                            bubbleDiv.innerHTML = safeMarkdown(fullReply) + '<span class="cursor">|</span>';
+                            // 💥 纯净的文本渲染，没有光标，黑点会被替换掉
+                            bubbleDiv.innerHTML = safeMarkdown(fullReply);
                             chatBox.scrollTop = chatBox.scrollHeight;
                         }
-                    } catch (e) { /* 忽略单个碎片的 JSON 解析错误 */ }
+                    } catch (e) {}
                 }
             }
         }
         
-        // 传输完毕，去掉光标，加上一键复制按钮
+        // 结束时加上一键复制
         bubbleDiv.innerHTML = safeMarkdown(fullReply);
         aiMessageDiv.appendChild(createCopyButton(fullReply));
         saveMessageToLocal(currentChatId, 'ai', fullReply);
@@ -129,7 +157,7 @@ function appendMessage(text, sender) {
     
     const bubbleDiv = document.createElement('div');
     bubbleDiv.classList.add('bubble');
-    if(sender === 'ai') bubbleDiv.classList.add('glass-panel'); // AI气泡用玻璃态
+    if(sender === 'ai') bubbleDiv.classList.add('glass-panel'); 
 
     if (sender === 'user') {
         bubbleDiv.innerHTML = escapeHTML(text).replace(/\n/g, '<br>');
@@ -137,14 +165,13 @@ function appendMessage(text, sender) {
     } else {
         bubbleDiv.innerHTML = safeMarkdown(text);
         messageDiv.appendChild(bubbleDiv);
-        messageDiv.appendChild(createCopyButton(text)); // 历史记录恢复时也带上复制按钮
+        messageDiv.appendChild(createCopyButton(text));
     }
     
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// 💥 新增：生成“一键复制”按钮
 function createCopyButton(text) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn glass-btn';
@@ -167,16 +194,14 @@ function saveMessageToLocal(id, role, content) {
     }
 }
 
-// 💥 更新：历史记录自带“删除功能”
 function renderHistory() {
     historyList.innerHTML = '<div class="history-title">历史记录</div>';
     
     chats.forEach(chat => {
         const item = document.createElement('div');
-        item.classList.add('history-item', 'glass-btn'); // 玻璃态列表项
+        item.classList.add('history-item', 'glass-btn'); 
         if (chat.id === currentChatId) item.classList.add('active');
         
-        // 标题与删除按钮
         item.innerHTML = `
             <span class="title">${escapeHTML(chat.title)}</span>
             <button class="delete-btn" title="删除记录">
@@ -184,7 +209,6 @@ function renderHistory() {
             </button>
         `;
         
-        // 点击切换历史记录
         item.addEventListener('click', () => {
             currentChatId = chat.id;
             chatBox.innerHTML = '';
@@ -195,12 +219,11 @@ function renderHistory() {
             if(window.innerWidth <= 768) sidebar.classList.remove('active');
         });
 
-        // 💥 新增：点击删除按钮的独立逻辑
         item.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止触发上面的点击切换事件
+            e.stopPropagation(); 
             chats = chats.filter(c => c.id !== chat.id);
             localStorage.setItem('ai_chats', JSON.stringify(chats));
-            if (currentChatId === chat.id) newChatBtn.click(); // 如果删的是当前的，自动清屏开启新对话
+            if (currentChatId === chat.id) newChatBtn.click(); 
             renderHistory();
         });
         
