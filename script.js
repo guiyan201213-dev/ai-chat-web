@@ -7,32 +7,28 @@ const menuBtn = document.getElementById('menu-btn');
 const sidebar = document.getElementById('sidebar');
 const historyList = document.getElementById('history-list');
 
-// 💥 自定义模型菜单逻辑
+// 💥 真正的打断控制器
+let currentAbortController = null;
+
+// 模型菜单逻辑
 const modelToggle = document.getElementById('model-toggle');
 const modelMenu = document.getElementById('model-menu');
 const currentModelName = document.getElementById('current-model-name');
 const modelOptions = document.querySelectorAll('.model-option');
 let currentModelValue = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B';
 
-// 点击按钮打开/关闭面板
 modelToggle.addEventListener('click', (e) => {
     e.stopPropagation();
     modelMenu.classList.toggle('show');
 });
+document.addEventListener('click', () => { modelMenu.classList.remove('show'); });
 
-// 点击空白处收起面板
-document.addEventListener('click', () => {
-    modelMenu.classList.remove('show');
-});
-
-// 选择模型
 modelOptions.forEach(option => {
     option.addEventListener('click', (e) => {
         e.stopPropagation();
         modelOptions.forEach(opt => opt.classList.remove('active'));
         option.classList.add('active');
         currentModelValue = option.dataset.value;
-        // 把标题的文字提取出来填到按钮上
         currentModelName.textContent = option.querySelector('.opt-title').textContent.split(' ')[0];
         modelMenu.classList.remove('show');
     });
@@ -51,6 +47,9 @@ if(menuBtn) menuBtn.addEventListener('click', () => sidebar.classList.add('activ
 if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => sidebar.classList.remove('active'));
 
 newChatBtn.addEventListener('click', () => {
+    // 开启新对话前，如果正在生成，强制中断
+    if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
+    
     currentChatId = null;
     chatBox.innerHTML = ''; 
     document.body.classList.remove('chat-active'); 
@@ -62,15 +61,33 @@ userInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 sendBtn.addEventListener('click', sendMessage);
+
+// 💥 改进：文本框高度随内容智能自适应（带限制）
 userInput.addEventListener('input', function() {
-    this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px';
+    this.style.height = 'auto'; 
+    // css 中已设置 max-height，JS这里只需赋值 scrollHeight，超出后CSS会自动加滚动条
+    this.style.height = (this.scrollHeight) + 'px';
 });
 
 async function sendMessage() {
+    // 💥 核心逻辑：如果当前正在生成，点击按钮则触发“停止”
+    if (sendBtn.classList.contains('generating')) {
+        if (currentAbortController) {
+            currentAbortController.abort(); // 斩断网络连接
+            finishGenerationUI(); // 恢复按钮 UI
+        }
+        return;
+    }
+
     const text = userInput.value.trim();
     if (!text) return;
 
+    // 激活 UI 状态
     document.body.classList.add('chat-active'); 
+    sendBtn.classList.add('generating'); // 让按钮变成方块并转圈
+    
+    // 初始化新的打断器
+    currentAbortController = new AbortController();
 
     if (!currentChatId) {
         currentChatId = Date.now().toString();
@@ -82,9 +99,8 @@ async function sendMessage() {
     renderHistory();
     
     userInput.value = '';
-    userInput.style.height = 'auto';
+    userInput.style.height = 'auto'; // 发送后重置高度
 
-    // 💥 初始化气泡，只放入一颗纯黑呼吸点
     const aiMessageDiv = document.createElement('div');
     aiMessageDiv.classList.add('message', 'ai-message');
     const bubbleDiv = document.createElement('div');
@@ -98,7 +114,8 @@ async function sendMessage() {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, model: currentModelValue }) // 传自定义模型值
+            body: JSON.stringify({ message: text, model: currentModelValue }),
+            signal: currentAbortController.signal // 💥 把打断信号传给请求
         });
 
         if (!response.ok) throw new Error('网络请求失败');
@@ -125,7 +142,6 @@ async function sendMessage() {
                         if (parsed.error) throw new Error(parsed.error);
                         if (parsed.text) {
                             fullReply += parsed.text;
-                            // 💥 纯净的文本渲染，没有光标，黑点会被替换掉
                             bubbleDiv.innerHTML = safeMarkdown(fullReply);
                             chatBox.scrollTop = chatBox.scrollHeight;
                         }
@@ -134,16 +150,38 @@ async function sendMessage() {
             }
         }
         
-        // 结束时加上一键复制
+        // 正常接收完毕
         bubbleDiv.innerHTML = safeMarkdown(fullReply);
         aiMessageDiv.appendChild(createCopyButton(fullReply));
         saveMessageToLocal(currentChatId, 'ai', fullReply);
 
     } catch (error) {
-        console.error('Error:', error);
-        bubbleDiv.innerHTML = "抱歉，网络开小差了，请稍后再试。";
-        bubbleDiv.style.color = "red";
+        // 💥 捕获用户主动打断的事件
+        if (error.name === 'AbortError') {
+            console.log('生成被用户中止');
+            // 被中止时，如果已经生成了一半文字，就把它保存下来
+            const currentHTML = bubbleDiv.innerHTML;
+            if (!currentHTML.includes('single-breathing-dot')) {
+                aiMessageDiv.appendChild(createCopyButton(bubbleDiv.innerText));
+                saveMessageToLocal(currentChatId, 'ai', bubbleDiv.innerText + " [已中断]");
+            } else {
+                bubbleDiv.innerHTML = "<span style='color:var(--text-muted); font-size: 0.9em;'>[已取消生成]</span>";
+            }
+        } else {
+            console.error('Error:', error);
+            bubbleDiv.innerHTML = "抱歉，网络开小差了，请稍后再试。";
+            bubbleDiv.style.color = "red";
+        }
+    } finally {
+        // 无论成功还是被打断，最后必须恢复按钮状态
+        finishGenerationUI();
     }
+}
+
+// 恢复按钮初始状态的函数
+function finishGenerationUI() {
+    sendBtn.classList.remove('generating');
+    currentAbortController = null;
 }
 
 function safeMarkdown(text) {
@@ -210,6 +248,9 @@ function renderHistory() {
         `;
         
         item.addEventListener('click', () => {
+            // 切换记录前，如果正在生成，强制中断
+            if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
+
             currentChatId = chat.id;
             chatBox.innerHTML = '';
             document.body.classList.add('chat-active'); 
