@@ -7,49 +7,60 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="bg-orbs">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-    </div>
+    <div class="bg-orbs" style="pointer-events: none;"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
 
     <div class="top-brand-name">Chat Go</div>
+
+    <button id="quick-new-chat" class="quick-new-btn glass-btn" style="display: none;" title="开启新对话">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
 
     <div class="app-layout">
         <aside class="sidebar glass-panel" id="sidebar">
             <div class="sidebar-header">
                 <button id="new-chat-btn" class="glass-btn new-chat-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    开启新对话
-                </button>
-                <button id="close-sidebar-btn" class="icon-btn close-btn mobile-only">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 开启新对话
                 </button>
             </div>
             
-            <div class="user-auth-section" id="user-section">
-                <button id="login-btn" class="glass-btn auth-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/></svg>
-                    GitHub 登录
+            <div class="user-auth-section">
+                <button id="open-auth-modal" class="glass-btn auth-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 登录账号同步
                 </button>
                 <div id="user-info" class="user-info-panel glass-panel" style="display: none;">
                     <img id="user-avatar" src="" alt="avatar">
                     <span id="user-name">加载中...</span>
-                    <button id="logout-btn" title="退出">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                    </button>
+                    <button id="logout-btn" title="退出"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
                 </div>
             </div>
 
-            <div class="history-list" id="history-list">
-                <div class="history-title">历史记录</div>
-            </div>
+            <div class="history-list" id="history-list"><div class="history-title">云端记录</div></div>
         </aside>
+
+        <div id="auth-modal" class="auth-modal-overlay">
+            <div class="auth-modal-box glass-panel">
+                <button id="close-auth-modal" class="close-modal-btn">&times;</button>
+                <h2>欢迎来到 Chat Go</h2>
+                <p class="modal-sub">登录后记录自动云端同步</p>
+                <div class="email-auth-box">
+                    <input type="email" id="auth-email" placeholder="输入邮箱地址">
+                    <input type="password" id="auth-password" placeholder="输入密码 (注册需6位以上)">
+                    <div class="auth-actions">
+                        <button id="email-login-btn" class="modal-primary-btn">登录</button>
+                        <button id="email-signup-btn" class="modal-ghost-btn">没有账号？点击注册</button>
+                    </div>
+                </div>
+                <div class="modal-divider"><span>或</span></div>
+                <button id="github-login-btn" class="github-auth-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg> 使用 GitHub 继续
+                </button>
+            </div>
+        </div>
 
         <main class="main-content">
             <header class="header">
-                <button id="menu-btn" class="icon-btn mobile-only glass-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                <button id="menu-btn" class="icon-btn mobile-menu-btn glass-btn">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 </button>
             </header>
 
@@ -60,14 +71,13 @@
                 </div>
                 
                 <div class="chat-container" id="chat-box"></div>
-                <div class="bottom-gradient"></div>
                 
                 <div class="input-area">
-                    <div class="input-pill glass-panel">
+                    <div class="input-pill glass-panel" id="main-input-pill">
                         <textarea id="user-input" placeholder="输入你想聊的内容..." rows="1"></textarea>
                         
                         <div class="action-row">
-                            <div class="custom-model-selector" id="custom-model-selector">
+                            <div class="custom-model-selector">
                                 <button class="model-toggle glass-btn" id="model-toggle">
                                     <span class="sparkle">✨</span>
                                     <span id="current-model-name" class="model-name-text">DeepSeek-R1</span>
@@ -75,18 +85,11 @@
                                 </button>
                                 
                                 <div class="model-menu glass-panel" id="model-menu">
-                                    <div class="model-option active" data-value="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B">
-                                        <div class="opt-title">DeepSeek-R1</div>
-                                        <div class="opt-desc">深度思考，擅长复杂逻辑推理与代码生成</div>
-                                    </div>
-                                    <div class="model-option" data-value="tencent/Hunyuan-MT-7B">
-                                        <div class="opt-title">Hunyuan (混元)</div>
-                                        <div class="opt-desc">腾讯旗舰，全面均衡的通用大语言模型</div>
-                                    </div>
-                                    <div class="model-option" data-value="Qwen/Qwen3-8B">
-                                        <div class="opt-title">Qwen3 (千问)</div>
-                                        <div class="opt-desc">阿里开源顶流，极速响应，日常问答首选</div>
-                                    </div>
+                                    <div class="model-option active" data-value="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"><div class="opt-title">DeepSeek-R1</div><div class="opt-desc">硅基·深度思考，擅长复杂推理</div></div>
+                                    <div class="model-option" data-value="tencent/Hunyuan-MT-7B"><div class="opt-title">Hunyuan</div><div class="opt-desc">硅基·腾讯全面均衡大模型</div></div>
+                                    <div class="model-option" data-value="qwen3-max"><div class="opt-title">Qwen3-Max <span class="beta-badge">Beta</span></div><div class="opt-desc">心流·阿里千问最新旗舰版，全能顶配</div></div>
+                                    <div class="model-option" data-value="kimi-k2-0905"><div class="opt-title">Kimi-k2 <span class="beta-badge">Beta</span></div><div class="opt-desc">心流·月之暗面 K2，极强长文本处理</div></div>
+                                    <div class="model-option" data-value="iflow-rome-30ba3b"><div class="opt-title">iFlow-ROME <span class="beta-badge">Beta</span></div><div class="opt-desc">心流·自研罗马架构模型，极速响应</div></div>
                                 </div>
                             </div>
 
