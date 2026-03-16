@@ -1,5 +1,5 @@
-const supabaseUrl = '你的URL'; 
-const supabaseKey = '你的KEY'; 
+const supabaseUrl = 'https://usotduffikxsrapjsanr.supabase.co'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzb3RkdWZmaWt4c3JhcGpzYW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzEwNjgsImV4cCI6MjA4OTE0NzA2OH0.R_S5ddSNwtTubDj6lk300UxoN6ISJzJp09KHSFI9J2w'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. 初始化 Supabase
