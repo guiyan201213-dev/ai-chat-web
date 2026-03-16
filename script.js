@@ -1,66 +1,110 @@
-// ==========================================
 // 💥 填入你的 Supabase 密钥
-// ==========================================
-const supabaseUrl = 'https://usotduffikxsrapjsanr.supabase.co'; // 替换为真实的 URL
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzb3RkdWZmaWt4c3JhcGpzYW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzEwNjgsImV4cCI6MjA4OTE0NzA2OH0.R_S5ddSNwtTubDj6lk300UxoN6ISJzJp09KHSFI9J2w'; // 替换为真实的 Key
+const supabaseUrl = 'https://usotduffikxsrapjsanr.supabase.co'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzb3RkdWZmaWt4c3JhcGpzYW5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NzEwNjgsImV4cCI6MjA4OTE0NzA2OH0.R_S5ddSNwtTubDj6lk300UxoN6ISJzJp09KHSFI9J2w
+'; 
 
-// 💥 绝对防御机制：必须等整个网页渲染完毕再执行 JS
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // 获取元素（如果没找到也不会报错卡死）
+    const supabase = (supabaseUrl.startsWith('https')) ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+    let currentSession = null;
+    let currentUserId = null;
+
+    // DOM 元素
     const chatBox = document.getElementById('chat-box');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
-    const newChatBtn = document.getElementById('new-chat-btn');
-    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
-    const menuBtn = document.getElementById('menu-btn');
     const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menu-btn');
     const historyList = document.getElementById('history-list');
-    
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const userInfo = document.getElementById('user-info');
-    
-    // 初始化 Supabase
-    let supabase = null;
-    let currentSession = null;
-    try {
-        if (typeof window.supabase !== 'undefined' && supabaseUrl.includes('supabase.co')) {
-            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const quickNewChatBtn = document.getElementById('quick-new-chat');
+    const authModal = document.getElementById('auth-modal');
+
+    // ==========================================
+    // 1. 认证与云端拉取
+    // ==========================================
+    if (supabase) {
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            currentSession = session;
+            const openBtn = document.getElementById('open-auth-modal');
+            const infoPanel = document.getElementById('user-info');
             
-            supabase.auth.onAuthStateChange((event, session) => {
-                currentSession = session; 
-                if (session && userInfo && loginBtn) {
-                    loginBtn.style.display = 'none';
-                    userInfo.style.display = 'flex';
-                    document.getElementById('user-avatar').src = session.user.user_metadata.avatar_url;
-                    document.getElementById('user-name').textContent = session.user.user_metadata.full_name || '用户';
-                } else if (userInfo && loginBtn) {
-                    loginBtn.style.display = 'flex';
-                    userInfo.style.display = 'none';
-                }
-            });
+            if (session) {
+                currentUserId = session.user.id;
+                if(openBtn) openBtn.style.display = 'none';
+                if(infoPanel) infoPanel.style.display = 'flex';
+                document.getElementById('user-avatar').src = session.user.user_metadata.avatar_url || 'https://via.placeholder.com/150';
+                document.getElementById('user-name').textContent = session.user.user_metadata.full_name || session.user.email.split('@')[0];
+                authModal.classList.remove('show');
+                await fetchCloudChats(); // 登录后拉取云端记录
+            } else {
+                currentUserId = null;
+                if(openBtn) openBtn.style.display = 'flex';
+                if(infoPanel) infoPanel.style.display = 'none';
+                chats = []; // 清空记录
+                renderHistory();
+            }
+        });
+
+        // 绑定弹窗按键
+        document.getElementById('open-auth-modal').onclick = () => authModal.classList.add('show');
+        document.getElementById('close-auth-modal').onclick = () => authModal.classList.remove('show');
+        document.getElementById('github-login-btn').onclick = () => supabase.auth.signInWithOAuth({ provider: 'github' });
+        document.getElementById('logout-btn').onclick = () => supabase.auth.signOut();
+
+        // 邮箱认证
+        document.getElementById('email-login-btn').onclick = async () => {
+            const e = document.getElementById('auth-email').value, p = document.getElementById('auth-password').value;
+            const { error } = await supabase.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message);
+        };
+        document.getElementById('email-signup-btn').onclick = async () => {
+            const e = document.getElementById('auth-email').value, p = document.getElementById('auth-password').value;
+            const { error } = await supabase.auth.signUp({ email: e, password: p });
+            if (error) alert(error.message); else alert('注册成功/已发验证邮件！');
+        };
+    }
+
+    // ==========================================
+    // 2. 侧边栏高级交互
+    // ==========================================
+    // 桌面端悬停展开
+    menuBtn.addEventListener('mouseenter', () => { if(window.innerWidth > 768) sidebar.classList.add('active'); });
+    sidebar.addEventListener('mouseleave', () => { if(window.innerWidth > 768) sidebar.classList.remove('active'); });
+    
+    // 移动端点击展开，点击空白收起
+    menuBtn.addEventListener('click', (e) => { e.stopPropagation(); sidebar.classList.toggle('active'); });
+    document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('active') && !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+            sidebar.classList.remove('active');
         }
-    } catch (e) { console.error('Supabase 启动失败:', e); }
+    });
 
-    // 登录退出逻辑
-    if (loginBtn) loginBtn.onclick = () => {
-        if (!supabase) alert('请先在 script.js 顶部填入 Supabase 密钥');
-        else supabase.auth.signInWithOAuth({ provider: 'github' });
+    // 快捷开启新对话
+    const initNewChat = () => {
+        if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
+        currentChatId = null; 
+        if(chatBox) chatBox.innerHTML = ''; 
+        document.body.classList.remove('chat-active');
+        quickNewChatBtn.style.display = 'none';
+        document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+        if(window.innerWidth <= 768) sidebar.classList.remove('active');
     };
-    if (logoutBtn) logoutBtn.onclick = () => { if (supabase) supabase.auth.signOut(); };
+    document.getElementById('new-chat-btn').onclick = initNewChat;
+    quickNewChatBtn.onclick = initNewChat;
 
-    // 模型菜单逻辑
-    let currentAbortController = null;
+    // ==========================================
+    // 3. 模型菜单逻辑
+    // ==========================================
     const modelToggle = document.getElementById('model-toggle');
     const modelMenu = document.getElementById('model-menu');
     const currentModelName = document.getElementById('current-model-name');
     let currentModelValue = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B';
 
-    if (modelToggle && modelMenu) {
-        modelToggle.onclick = (e) => { e.stopPropagation(); modelMenu.classList.toggle('show'); };
-        document.addEventListener('click', () => modelMenu.classList.remove('show'));
-    }
+    modelToggle.onclick = (e) => { e.stopPropagation(); modelMenu.classList.toggle('show'); };
+    document.addEventListener('click', (e) => {
+        if (!modelMenu.contains(e.target)) modelMenu.classList.remove('show');
+        // 关闭所有历史菜单的下拉框
+        document.querySelectorAll('.item-dropdown').forEach(d => d.classList.remove('show'));
+    });
     
     document.querySelectorAll('.model-option').forEach(opt => {
         opt.onclick = (e) => {
@@ -68,56 +112,94 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.model-option').forEach(i => i.classList.remove('active'));
             opt.classList.add('active');
             currentModelValue = opt.dataset.value;
-            if (currentModelName) currentModelName.textContent = opt.querySelector('.opt-title').textContent.split(' ')[0];
-            if (modelMenu) modelMenu.classList.remove('show');
+            // 提取纯文本名字（去掉 Beta 标志）
+            currentModelName.textContent = opt.querySelector('.opt-title').childNodes[0].textContent.trim();
+            modelMenu.classList.remove('show');
         };
     });
 
-    // 历史记录与页面操作
+    // ==========================================
+    // 4. 云端历史记录逻辑 (核心重构)
+    // ==========================================
     let chats = [];
     let currentChatId = null;
-    try {
-        const localData = localStorage.getItem('ai_chats');
-        if (localData) { chats = JSON.parse(localData); if (!Array.isArray(chats)) chats = []; }
-    } catch (e) { chats = []; }
+
+    async function fetchCloudChats() {
+        if (!supabase || !currentUserId) return;
+        const { data, error } = await supabase.from('chats').select('*').eq('user_id', currentUserId).order('created_at', { ascending: false });
+        if (!error && data) { chats = data; renderHistory(); }
+    }
+
+    async function syncChatToCloud(id, role, content, title) {
+        if (!supabase || !currentUserId) return; // 未登录不保存
+        let chat = chats.find(c => c.id === id);
+        if (!chat) {
+            chat = { id, user_id: currentUserId, title, messages: [{ role, content }] };
+            chats.unshift(chat);
+            await supabase.from('chats').insert(chat);
+        } else {
+            chat.messages.push({ role, content });
+            await supabase.from('chats').update({ messages: chat.messages }).eq('id', id);
+        }
+    }
 
     function renderHistory() {
         if (!historyList) return;
-        historyList.innerHTML = '<div class="history-title">历史记录</div>';
+        historyList.innerHTML = '<div class="history-title">云端记录</div>';
         chats.forEach(chat => {
-            const item = document.createElement('div'); item.className = 'history-item glass-btn';
+            const item = document.createElement('div'); 
+            item.className = 'history-item glass-btn';
             if (chat.id === currentChatId) item.classList.add('active');
-            item.innerHTML = `<span class="title">${escapeHTML(chat.title)}</span><button class="delete-btn" title="删除">🗑️</button>`;
             
+            // 💥 高级三点菜单
+            item.innerHTML = `
+                <span class="title">${escapeHTML(chat.title)}</span>
+                <button class="item-menu-btn">⋮</button>
+                <div class="item-dropdown"><button class="del-chat-btn">删除对话</button></div>
+            `;
+            
+            // 点击切换对话
             item.onclick = () => {
                 if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
-                currentChatId = chat.id; if(chatBox) chatBox.innerHTML = ''; document.body.classList.add('chat-active'); 
+                currentChatId = chat.id; chatBox.innerHTML = ''; 
+                document.body.classList.add('chat-active'); 
+                quickNewChatBtn.style.display = 'flex'; // 显示右上角加号
                 chat.messages.forEach(msg => appendMessage(msg.content, msg.role));
-                renderHistory(); if (window.innerWidth <= 768 && sidebar) sidebar.classList.remove('active');
+                renderHistory();
             };
-            item.querySelector('.delete-btn').onclick = (e) => {
-                e.stopPropagation(); chats = chats.filter(c => c.id !== chat.id); localStorage.setItem('ai_chats', JSON.stringify(chats));
-                if (currentChatId === chat.id && newChatBtn) newChatBtn.click(); renderHistory();
+
+            // 三点菜单逻辑
+            const menuBtn = item.querySelector('.item-menu-btn');
+            const dropdown = item.querySelector('.item-dropdown');
+            menuBtn.onclick = (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.item-dropdown').forEach(d => d.classList.remove('show'));
+                dropdown.classList.add('show');
             };
+
+            item.querySelector('.del-chat-btn').onclick = async (e) => {
+                e.stopPropagation();
+                if (supabase) await supabase.from('chats').delete().eq('id', chat.id);
+                chats = chats.filter(c => c.id !== chat.id);
+                if (currentChatId === chat.id) initNewChat(); else renderHistory();
+            };
+            
             historyList.appendChild(item);
         });
     }
-    renderHistory();
 
-    if (newChatBtn) newChatBtn.onclick = () => location.reload(); // 极度稳定：刷新重置
-    if (menuBtn && sidebar) menuBtn.onclick = () => sidebar.classList.add('active');
-    if (closeSidebarBtn && sidebar) closeSidebarBtn.onclick = () => sidebar.classList.remove('active');
-
+    // ==========================================
+    // 5. 对话引擎
+    // ==========================================
+    let currentAbortController = null;
     if (userInput) {
         userInput.onkeypress = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
         userInput.oninput = function() { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; };
     }
     if (sendBtn) sendBtn.onclick = sendMessage;
 
-    // 核心发送引擎
     async function sendMessage() {
         if (!userInput || !sendBtn || !chatBox) return;
-
         if (sendBtn.classList.contains('generating')) {
             if (currentAbortController) { currentAbortController.abort(); finishGenerationUI(); }
             return;
@@ -127,23 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text) return;
 
         document.body.classList.add('chat-active'); 
+        quickNewChatBtn.style.display = 'flex'; // 开始对话就显示快捷新建
         sendBtn.classList.add('generating'); 
         currentAbortController = new AbortController();
 
-        if (!currentChatId) {
-            currentChatId = Date.now().toString();
-            chats.unshift({ id: currentChatId, title: text.substring(0, 15), messages: [] });
-        }
+        const isNewChat = !currentChatId;
+        if (isNewChat) currentChatId = Date.now().toString();
 
         appendMessage(text, 'user');
-        saveMessageToLocal(currentChatId, 'user', text);
+        await syncChatToCloud(currentChatId, 'user', text, text.substring(0, 15));
         renderHistory();
         userInput.value = ''; userInput.style.height = 'auto';
 
-        const aiMessageDiv = document.createElement('div');
-        aiMessageDiv.className = 'message ai-message';
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = 'bubble glass-panel'; 
+        const aiMessageDiv = document.createElement('div'); aiMessageDiv.className = 'message ai-message';
+        const bubbleDiv = document.createElement('div'); bubbleDiv.className = 'bubble glass-panel'; 
         bubbleDiv.innerHTML = '<div class="single-breathing-dot"></div>'; 
         aiMessageDiv.appendChild(bubbleDiv);
         chatBox.appendChild(aiMessageDiv);
@@ -169,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (done) break;
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n'); buffer = lines.pop(); 
-                
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const dataStr = line.slice(6).trim();
@@ -186,20 +264,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            
             bubbleDiv.innerHTML = safeMarkdown(fullReply);
             aiMessageDiv.appendChild(createCopyButton(fullReply));
-            saveMessageToLocal(currentChatId, 'ai', fullReply);
+            await syncChatToCloud(currentChatId, 'ai', fullReply);
         } catch (error) {
             if (error.name === 'AbortError') {
                 if (!bubbleDiv.innerHTML.includes('single-breathing-dot')) {
                     aiMessageDiv.appendChild(createCopyButton(bubbleDiv.innerText));
-                    saveMessageToLocal(currentChatId, 'ai', bubbleDiv.innerText + " [已中断]");
-                } else { bubbleDiv.innerHTML = "<span style='color:var(--text-muted); font-size: 0.9em;'>[已取消生成]</span>"; }
-            } else {
-                bubbleDiv.innerHTML = "抱歉，网络开小差了，请重试。";
-                bubbleDiv.style.color = "red";
-            }
+                    await syncChatToCloud(currentChatId, 'ai', bubbleDiv.innerText + " [已中断]");
+                } else { bubbleDiv.innerHTML = "<span style='color:var(--text-muted);'>[已取消]</span>"; }
+            } else { bubbleDiv.innerHTML = "<span style='color:red;'>抱歉，请求失败。</span>"; }
         } finally { finishGenerationUI(); }
     }
 
@@ -217,15 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createCopyButton(text) {
-        const btn = document.createElement('button'); btn.className = 'copy-btn glass-btn';
-        btn.innerHTML = `复制`;
+        const btn = document.createElement('button'); btn.className = 'copy-btn glass-btn'; btn.innerHTML = `复制`;
         btn.onclick = () => { navigator.clipboard.writeText(text).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = '✅ 已复制'; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); };
         return btn;
-    }
-
-    function saveMessageToLocal(id, role, content) {
-        const chat = chats.find(c => c.id === id);
-        if (chat) { chat.messages.push({ role, content }); localStorage.setItem('ai_chats', JSON.stringify(chats)); }
     }
     function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
 });
