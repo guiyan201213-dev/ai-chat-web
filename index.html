@@ -10,6 +10,8 @@
     <div class="bg-orbs" style="pointer-events: none;"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
     <div class="top-brand-name">Chat Go</div>
 
+    <div id="toast-container"></div>
+
     <button id="quick-new-chat" class="quick-new-btn glass-btn" style="display: none;" title="开启新对话">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
     </button>
@@ -40,15 +42,26 @@
             <div class="auth-modal-box glass-panel">
                 <button id="close-auth-modal" class="close-modal-btn">&times;</button>
                 <h2>欢迎来到 Chat Go</h2>
-                <p class="modal-sub">登录后记录自动云端同步</p>
-                <div class="email-auth-box">
-                    <input type="email" id="auth-email" placeholder="输入邮箱地址">
-                    <input type="password" id="auth-password" placeholder="输入密码 (注册需6位以上)">
-                    <div class="auth-actions">
-                        <button id="email-login-btn" class="modal-primary-btn">登录</button>
-                        <button id="email-signup-btn" class="modal-ghost-btn">没有账号？点击注册</button>
-                    </div>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-target="login-form">登录</button>
+                    <button class="auth-tab" data-target="signup-form">注册</button>
                 </div>
+
+                <div id="login-form" class="auth-form active">
+                    <input type="email" id="login-email" placeholder="输入邮箱地址">
+                    <input type="password" id="login-password" placeholder="输入密码">
+                    <button id="do-login-btn" class="modal-primary-btn">登录</button>
+                </div>
+
+                <div id="signup-form" class="auth-form">
+                    <input type="text" id="signup-username" placeholder="设置你的用户名">
+                    <input type="email" id="signup-email" placeholder="输入邮箱地址">
+                    <input type="password" id="signup-password" placeholder="设置密码 (最少6位)">
+                    <button id="do-signup-btn" class="modal-primary-btn">发送激活邮件</button>
+                    <p class="modal-hint">注册后，请前往邮箱点击验证链接完成激活。</p>
+                </div>
+
                 <div class="modal-divider"><span>或</span></div>
                 <button id="github-login-btn" class="github-auth-btn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg> 使用 GitHub 继续
@@ -68,7 +81,6 @@
                     <h1>有什么我可以帮您的？</h1>
                     <p>随时向我提问，或让我帮您写点什么。</p>
                 </div>
-                
                 <div class="chat-container" id="chat-box"></div>
                 <div class="bottom-gradient"></div>
                 
